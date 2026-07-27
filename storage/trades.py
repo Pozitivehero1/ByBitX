@@ -8,7 +8,6 @@ from config.settings import STATS_FILE
 class TradeStorage:
 
 
-
     def __init__(self):
 
         self.file = STATS_FILE
@@ -18,7 +17,6 @@ class TradeStorage:
 
 
     def create(self):
-
 
         folder = os.path.dirname(
             self.file
@@ -33,54 +31,47 @@ class TradeStorage:
             )
 
 
-
         if not os.path.exists(
             self.file
         ):
 
-
-            with open(
-                self.file,
-                "w",
-                encoding="utf-8"
-            ) as f:
-
-
-                json.dump(
-                    [],
-                    f
-                )
+            self.save([])
 
 
 
     def load(self):
 
-    try:
+        try:
 
-        with open(
-            self.file,
-            "r",
-            encoding="utf-8"
-        ) as f:
-
-
-            data = json.load(f)
+            with open(
+                self.file,
+                "r",
+                encoding="utf-8"
+            ) as f:
 
 
-            if isinstance(data, list):
-
-                return data
-
-
-    except Exception:
-
-        pass
+                data = json.load(f)
 
 
 
-    self.save([])
+                if isinstance(
+                    data,
+                    list
+                ):
 
-    return []
+                    return data
+
+
+
+        except Exception:
+
+            pass
+
+
+
+        self.save([])
+
+        return []
 
 
 
@@ -157,6 +148,7 @@ class TradeStorage:
             }
 
         )
+
 
 
         self.save(
