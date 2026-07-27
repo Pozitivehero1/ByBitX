@@ -5,6 +5,7 @@ from config.settings import MIN_VOLUME_USDT
 class MarketFilter:
 
 
+
     @staticmethod
     def validate(df):
 
@@ -16,6 +17,7 @@ class MarketFilter:
 
 
         last = df.iloc[-1]
+
 
 
         if last["volume"] < MIN_VOLUME_USDT:
@@ -37,6 +39,7 @@ class MarketFilter:
             .mean()
 
         )
+
 
 
         if volatility < 0.0005:
