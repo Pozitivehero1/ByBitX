@@ -28,7 +28,7 @@ MISTRAL_API_KEY = os.getenv(
 # Bybit
 
 BYBIT_URL = (
-    "https://api.bybit.com"
+    "https://api.bytick.com"
 )
 
 
