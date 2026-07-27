@@ -11,14 +11,19 @@ class BybitClient:
         self.proxy = os.getenv("BYBIT_PROXY", None)
 
     async def connect(self):
-        """Создаёт синхронное подключение (HTTP)."""
+        """Создаёт синхронное подключение, передавая прокси через параметр proxies."""
+        proxies = None
+        if self.proxy:
+            proxies = {
+                "http": self.proxy,
+                "https": self.proxy
+            }
         self.session = HTTP(
             testnet=False,
-            proxy=self.proxy,
+            proxies=proxies,
         )
 
     async def close(self):
-        """Закрывать нечего, но оставляем для совместимости."""
         self.session = None
 
     async def _run_sync(self, method, *args, **kwargs):
