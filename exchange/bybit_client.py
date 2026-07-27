@@ -1,7 +1,5 @@
 # exchange/bybit_client.py
-import os
 import asyncio
-import requests
 from pybit.unified_trading import HTTP
 from config.settings import CANDLES_LIMIT
 from utils.logger import logger
@@ -9,21 +7,12 @@ from utils.logger import logger
 class BybitClient:
     def __init__(self):
         self.session = None
-        self.proxy = os.getenv("BYBIT_PROXY", None)
 
     async def connect(self):
-        """Создаёт синхронное подключение с поддержкой прокси через requests.Session."""
-        # Создаём собственную сессию requests
-        requests_session = requests.Session()
-        if self.proxy:
-            requests_session.proxies = {
-                "http": self.proxy,
-                "https": self.proxy
-            }
-        # Передаём сессию в HTTP
+        """Создаёт синхронное подключение к Bybit (без прокси)."""
         self.session = HTTP(
             testnet=False,
-            session=requests_session,
+            # Не передаём proxy, proxies, session — только testnet
         )
 
     async def close(self):
