@@ -153,9 +153,9 @@ class IndicatorEngine:
 
 
 
-        data = data.fillna(method="bfill")
+        data = data.bfill()
 
-        data = data.fillna(method="ffill")
+        data = data.ffill()
 
 
         return data
