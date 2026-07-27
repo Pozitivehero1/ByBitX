@@ -97,7 +97,7 @@ class OKXClient:
                         if data.get("code") == "50011":
 
                             wait = (
-                                2 + attempt * 2
+                                3 + attempt * 3
                             )
 
                             logger.warning(
