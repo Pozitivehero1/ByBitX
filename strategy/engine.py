@@ -1,15 +1,11 @@
 from scanner.ranking import SignalRanking
-
 from strategy.signal import SignalBuilder
-
 
 
 class StrategyEngine:
 
 
-
-    MIN_SCORE = 85
-
+    MIN_SCORE = 60
 
 
     @staticmethod
@@ -20,45 +16,32 @@ class StrategyEngine:
     ):
 
 
-        ranking = (
-            SignalRanking
-            .calculate(
-                data
-            )
+        ranking = SignalRanking.calculate(
+            data
         )
 
 
+        score = ranking.get(
+            "score",
+            0
+        )
 
-        if (
 
-            ranking["score"]
-
-            <
-
-            StrategyEngine.MIN_SCORE
-
-        ):
+        if score < StrategyEngine.MIN_SCORE:
 
             return None
 
 
 
-        signal = (
+        signal = SignalBuilder.build(
 
-            SignalBuilder
+            symbol,
 
-            .build(
+            data["1h"],
 
-                symbol,
-
-                data["1h"],
-
-                ranking
-
-            )
+            ranking
 
         )
-
 
 
         if not signal:
@@ -67,36 +50,19 @@ class StrategyEngine:
 
 
 
-        # фильтр направления рынка
+        if signal.direction == "LONG":
 
+            if not context.allow_long:
 
-        if (
-
-            signal.direction == "LONG"
-
-            and
-
-            not context.allow_long
-
-        ):
-
-
-            return None
+                return None
 
 
 
-        if (
+        if signal.direction == "SHORT":
 
-            signal.direction == "SHORT"
+            if not context.allow_short:
 
-            and
-
-            not context.allow_short
-
-        ):
-
-
-            return None
+                return None
 
 
 
