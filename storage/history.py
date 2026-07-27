@@ -23,13 +23,17 @@ class SignalHistory:
         )
 
 
-        os.makedirs(
-            folder,
-            exist_ok=True
-        )
+        if folder:
+
+            os.makedirs(
+                folder,
+                exist_ok=True
+            )
 
 
-        if not os.path.exists(self.file):
+        if not os.path.exists(
+            self.file
+        ):
 
             self.save([])
 
@@ -48,12 +52,19 @@ class SignalHistory:
                 data = json.load(f)
 
 
-                if isinstance(data, list):
+                if isinstance(
+                    data,
+                    list
+                ):
 
                     return data
 
 
-        except Exception:
+        except (
+            json.JSONDecodeError,
+            FileNotFoundError,
+            Exception
+        ):
 
             pass
 
@@ -70,13 +81,11 @@ class SignalHistory:
         data
     ):
 
-
         with open(
             self.file,
             "w",
             encoding="utf-8"
         ) as f:
-
 
             json.dump(
 
@@ -99,16 +108,28 @@ class SignalHistory:
     ):
 
 
-        for item in self.load():
+        history = self.load()
+
+
+
+        for item in history:
 
 
             if (
 
-                item.get("symbol") == symbol
+                item.get("symbol")
+
+                ==
+
+                symbol
 
                 and
 
-                item.get("direction") == direction
+                item.get("direction")
+
+                ==
+
+                direction
 
             ):
 
@@ -135,14 +156,17 @@ class SignalHistory:
             {
 
                 "symbol":
+
                     signal.symbol,
 
 
                 "direction":
+
                     signal.direction,
 
 
                 "score":
+
                     signal.score
 
             }
@@ -151,5 +175,7 @@ class SignalHistory:
 
 
         self.save(
+
             data[-500:]
+
         )
