@@ -1,109 +1,20 @@
+# scanner/structure.py
 class MarketStructure:
-
-
-
     @staticmethod
-    def detect_trend(
-        df
-    ):
-
-
+    def detect_trend(df):
+        """
+        Определяет тренд на основе цен и скользящих средних.
+        Используем EMA50 и EMA20 для большей стабильности.
+        """
         last = df.iloc[-1]
-
-
-
-        previous = df.iloc[-20]
-
-
-
-        if (
-
-            last["close"]
-
-            >
-
-            previous["close"]
-
-            and
-
-            last["high"]
-
-            >
-
-            previous["high"]
-
-        ):
-
-
+        if last["close"] > last["ema50"] and last["ema20"] > last["ema50"]:
             return "UP"
-
-
-
-        if (
-
-            last["close"]
-
-            <
-
-            previous["close"]
-
-            and
-
-            last["low"]
-
-            <
-
-            previous["low"]
-
-        ):
-
-
+        elif last["close"] < last["ema50"] and last["ema20"] < last["ema50"]:
             return "DOWN"
-
-
-
         return "SIDE"
 
-
-
     @staticmethod
-    def highs_lows(
-        df
-    ):
-
-
-        highs = (
-
-            df["high"]
-
-            .rolling(10)
-
-            .max()
-
-        )
-
-
-        lows = (
-
-            df["low"]
-
-            .rolling(10)
-
-            .min()
-
-        )
-
-
-        return {
-
-
-            "high":
-
-                highs.iloc[-1],
-
-
-            "low":
-
-                lows.iloc[-1]
-
-        }
+    def highs_lows(df):
+        highs = df["high"].rolling(10).max()
+        lows = df["low"].rolling(10).min()
+        return {"high": highs.iloc[-1], "low": lows.iloc[-1]}
