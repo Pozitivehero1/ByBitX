@@ -15,7 +15,7 @@ class OKXClient:
 
         self.session = None
 
-        self.rate_limit = asyncio.Semaphore(5)
+        self.rate_limit = asyncio.Semaphore(2)
 
 
 
