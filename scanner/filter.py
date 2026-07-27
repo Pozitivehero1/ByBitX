@@ -5,14 +5,11 @@ from config.settings import MIN_VOLUME_USDT
 class MarketFilter:
 
 
-
     @staticmethod
-    def validate(
-        df
-    ):
+    def validate(df):
 
 
-        if len(df) < 200:
+        if len(df) < 50:
 
             return False
 
@@ -21,38 +18,28 @@ class MarketFilter:
         last = df.iloc[-1]
 
 
-
-        # слишком маленький объём
-
-
         if last["volume"] < MIN_VOLUME_USDT:
 
             return False
 
 
 
-        # нет движения
-
-
         volatility = (
 
-            abs(
+            df["close"]
 
-                df["close"]
+            .pct_change()
 
-                .pct_change()
+            .tail(20)
 
-                .tail(20)
-
-            )
+            .abs()
 
             .mean()
 
         )
 
 
-
-        if volatility < 0.001:
+        if volatility < 0.0005:
 
             return False
 
