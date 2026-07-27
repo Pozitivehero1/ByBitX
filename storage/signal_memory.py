@@ -56,16 +56,30 @@ class SignalMemory:
 
     def load(self):
 
+    try:
+
         with open(
             self.file,
             "r",
             encoding="utf-8"
         ) as f:
 
+            data = json.load(f)
 
-            return json.load(
-                f
-            )
+            if isinstance(data, list):
+
+                return data
+
+
+    except Exception:
+
+        pass
+
+
+
+    self.save([])
+
+    return []
 
 
 
