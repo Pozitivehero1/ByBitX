@@ -97,26 +97,27 @@ class OKXClient:
         for item in data:
 
 
-            if (
-
-                item["settleCcy"]
-
-                ==
-
-                "USDT"
-
-            ):
+            if item.get("settleCcy") == "USDT":
 
 
-                symbols.append(
+                symbol = (
 
                     item["instId"]
 
-                    .replace("-SWAP","")
+                    .replace(
+                        "-SWAP",
+                        ""
+                    )
 
-                    .replace("-","")
+                    .replace(
+                        "-",
+                        ""
+                    )
 
                 )
+
+
+                symbols.append(symbol)
 
 
 
@@ -132,148 +133,79 @@ class OKXClient:
 
 
 
-def convert_interval(
-    self,
-    interval
-):
-
-
-    mapping = {
-
-        "1m": "1m",
-
-        "5m": "5m",
-
-        "15m": "15m",
-
-        "30m": "30m",
-
-        "1h": "1H",
-
-        "4h": "4H",
-
-        "1d": "1D"
-
-    }
-
-
-    return mapping.get(
-
-        interval,
-
-        "1H"
-
-    )
-
-
-
-async def get_klines(
-    self,
-    symbol,
-    interval
-):
-
-
-    okx_symbol = (
-
-        symbol[:-4]
-
-        +
-
-        "-USDT-SWAP"
-
-    )
-
-
-
-    bar = self.convert_interval(
+    def convert_interval(
+        self,
         interval
-    )
+    ):
 
 
-
-    data = await self.request(
-
-        "/api/v5/market/candles",
-
-        {
-
-            "instId":
-
-                okx_symbol,
+        mapping = {
 
 
-            "bar":
+            "1m":
+                "1m",
 
-                bar,
+
+            "5m":
+                "5m",
 
 
-            "limit":
+            "15m":
+                "15m",
 
-                str(CANDLES_LIMIT)
+
+            "30m":
+                "30m",
+
+
+            "1h":
+                "1H",
+
+
+            "4h":
+                "4H",
+
+
+            "1d":
+                "1D"
 
         }
 
-    )
 
+        return mapping.get(
 
+            interval,
 
-    candles = []
-
-
-
-    for item in reversed(data):
-
-
-        candles.append(
-
-            {
-
-                "timestamp":
-
-                    int(item[0]),
-
-
-                "open":
-
-                    float(item[1]),
-
-
-                "high":
-
-                    float(item[2]),
-
-
-                "low":
-
-                    float(item[3]),
-
-
-                "close":
-
-                    float(item[4]),
-
-
-                "volume":
-
-                    float(item[5])
-
-            }
+            "1H"
 
         )
 
 
 
-    return candles
+    async def get_klines(
+        self,
+        symbol,
+        interval
+    ):
 
 
         okx_symbol = (
 
-            symbol[:-4]
+            symbol.replace(
 
-            +
+                "USDT",
 
-            "-USDT-SWAP"
+                "-USDT-SWAP"
+
+            )
+
+        )
+
+
+
+        bar = self.convert_interval(
+
+            interval
 
         )
 
@@ -292,12 +224,12 @@ async def get_klines(
 
                 "bar":
 
-                    interval,
+                    bar,
 
 
                 "limit":
 
-                    CANDLES_LIMIT
+                    str(CANDLES_LIMIT)
 
             }
 
@@ -363,16 +295,19 @@ async def get_klines(
 
         okx_symbol = (
 
-            symbol[:-4]
+            symbol.replace(
 
-            +
+                "USDT",
 
-            "-USDT-SWAP"
+                "-USDT-SWAP"
+
+            )
 
         )
 
 
-        data = await self.request(
+
+        data = await request(
 
             "/api/v5/market/ticker",
 
