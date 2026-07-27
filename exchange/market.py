@@ -17,7 +17,8 @@ class MarketLoader:
 
         self.cache = CandleCache()
 
-        self.symbol_limit = asyncio.Semaphore(10)
+        # одновременно грузим только 3 монеты
+        self.symbol_limit = asyncio.Semaphore(3)
 
 
 
@@ -51,14 +52,17 @@ class MarketLoader:
             tasks=[]
 
 
-            for name,interval in TIMEFRAMES.items():
+            for name, interval in TIMEFRAMES.items():
+
 
                 tasks.append(
 
                     self.load_timeframe(
 
                         symbol,
+
                         name,
+
                         interval
 
                     )
@@ -66,13 +70,19 @@ class MarketLoader:
                 )
 
 
+
             results = await asyncio.gather(
+
                 *tasks,
+
                 return_exceptions=True
+
             )
 
 
+
             output={}
+
 
 
             for result in results:
@@ -86,7 +96,9 @@ class MarketLoader:
                     continue
 
 
-                name,df=result
+
+                name, df = result
+
 
 
                 if df is not None:
@@ -108,7 +120,13 @@ class MarketLoader:
     ):
 
 
-        key=symbol+name
+        key = (
+
+            symbol +
+
+            name
+
+        )
 
 
 
@@ -119,31 +137,53 @@ class MarketLoader:
 
         if cached is not None:
 
-            return name,cached
+            return (
+                name,
+                cached
+            )
 
 
 
-        candles=await self.client.get_klines(
+        candles = await self.client.get_klines(
 
             symbol,
+
             interval
 
         )
 
 
-        if len(candles)<100:
 
-            logger.warning(
-                f"{symbol} {name}: not enough candles"
+        if not candles:
+
+            return (
+                name,
+                None
             )
 
-            return name,None
+
+
+        if len(candles)<100:
+
+
+            logger.warning(
+
+                f"{symbol} {name}: not enough candles"
+
+            )
+
+
+            return (
+                name,
+                None
+            )
 
 
 
         df=pd.DataFrame(
             candles
         )
+
 
 
         df["timestamp"]=pd.to_datetime(
@@ -155,10 +195,21 @@ class MarketLoader:
         )
 
 
+
         self.cache.set(
+
             key,
+
             df
+
         )
 
 
-        return name,df
+
+        return (
+
+            name,
+
+            df
+
+        )
