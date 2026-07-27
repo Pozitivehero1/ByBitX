@@ -132,11 +132,139 @@ class OKXClient:
 
 
 
-    async def get_klines(
-        self,
-        symbol,
+def convert_interval(
+    self,
+    interval
+):
+
+
+    mapping = {
+
+        "1m": "1m",
+
+        "5m": "5m",
+
+        "15m": "15m",
+
+        "30m": "30m",
+
+        "1h": "1H",
+
+        "4h": "4H",
+
+        "1d": "1D"
+
+    }
+
+
+    return mapping.get(
+
+        interval,
+
+        "1H"
+
+    )
+
+
+
+async def get_klines(
+    self,
+    symbol,
+    interval
+):
+
+
+    okx_symbol = (
+
+        symbol[:-4]
+
+        +
+
+        "-USDT-SWAP"
+
+    )
+
+
+
+    bar = self.convert_interval(
         interval
-    ):
+    )
+
+
+
+    data = await self.request(
+
+        "/api/v5/market/candles",
+
+        {
+
+            "instId":
+
+                okx_symbol,
+
+
+            "bar":
+
+                bar,
+
+
+            "limit":
+
+                str(CANDLES_LIMIT)
+
+        }
+
+    )
+
+
+
+    candles = []
+
+
+
+    for item in reversed(data):
+
+
+        candles.append(
+
+            {
+
+                "timestamp":
+
+                    int(item[0]),
+
+
+                "open":
+
+                    float(item[1]),
+
+
+                "high":
+
+                    float(item[2]),
+
+
+                "low":
+
+                    float(item[3]),
+
+
+                "close":
+
+                    float(item[4]),
+
+
+                "volume":
+
+                    float(item[5])
+
+            }
+
+        )
+
+
+
+    return candles
 
 
         okx_symbol = (
