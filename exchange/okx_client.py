@@ -1,21 +1,21 @@
 import aiohttp
+import asyncio
+import random
 
 from config.settings import CANDLES_LIMIT
-
 from utils.logger import logger
-
 
 
 class OKXClient:
 
-
     BASE_URL = "https://www.okx.com"
-
 
 
     def __init__(self):
 
         self.session = None
+
+        self.rate_limit = asyncio.Semaphore(5)
 
 
 
@@ -24,11 +24,13 @@ class OKXClient:
         self.session = aiohttp.ClientSession(
 
             headers={
-
                 "User-Agent":
                     "Mozilla/5.0"
+            },
 
-            }
+            timeout=aiohttp.ClientTimeout(
+                total=15
+            )
 
         )
 
@@ -42,6 +44,23 @@ class OKXClient:
 
 
 
+    def format_symbol(self, symbol):
+
+        if "-SWAP" in symbol:
+
+            return symbol
+
+        if "-" in symbol:
+
+            return symbol + "-SWAP"
+
+        return symbol.replace(
+            "USDT",
+            "-USDT-SWAP"
+        )
+
+
+
     async def request(
         self,
         endpoint,
@@ -49,26 +68,70 @@ class OKXClient:
     ):
 
 
-        async with self.session.get(
-
-            self.BASE_URL + endpoint,
-
-            params=params
-
-        ) as response:
+        async with self.rate_limit:
 
 
-            data = await response.json()
+            for attempt in range(5):
+
+                try:
+
+                    async with self.session.get(
+
+                        self.BASE_URL + endpoint,
+
+                        params=params
+
+                    ) as response:
+
+
+                        data = await response.json()
 
 
 
-            if data.get("code") != "0":
+                        if data.get("code") == "0":
 
-                raise Exception(data)
+                            return data["data"]
 
 
 
-            return data["data"]
+                        if data.get("code") == "50011":
+
+                            wait = (
+                                2 + attempt * 2
+                            )
+
+                            logger.warning(
+
+                                f"OKX rate limit. Sleep {wait}s"
+
+                            )
+
+                            await asyncio.sleep(wait)
+
+                            continue
+
+
+
+                        raise Exception(data)
+
+
+
+                except Exception as e:
+
+
+                    if attempt == 4:
+
+                        raise e
+
+
+                    await asyncio.sleep(
+
+                        random.uniform(
+                            1,
+                            3
+                        )
+
+                    )
 
 
 
@@ -80,11 +143,8 @@ class OKXClient:
             "/api/v5/public/instruments",
 
             {
-
                 "instType":
-
                     "SWAP"
-
             }
 
         )
@@ -100,24 +160,13 @@ class OKXClient:
             if item.get("settleCcy") == "USDT":
 
 
-                symbol = (
+                symbols.append(
 
                     item["instId"]
-
-                    .replace(
-                        "-SWAP",
-                        ""
-                    )
-
-                    .replace(
-                        "-",
-                        ""
-                    )
+                    .replace("-","")
+                    .replace("SWAP","")
 
                 )
-
-
-                symbols.append(symbol)
 
 
 
@@ -126,7 +175,6 @@ class OKXClient:
             f"OKX symbols: {len(symbols)}"
 
         )
-
 
 
         return symbols
@@ -139,45 +187,19 @@ class OKXClient:
     ):
 
 
-        mapping = {
+        return {
 
+            "1m":"1m",
+            "5m":"5m",
+            "15m":"15m",
+            "30m":"30m",
+            "1h":"1H",
+            "4h":"4H",
+            "1d":"1D"
 
-            "1m":
-                "1m",
-
-
-            "5m":
-                "5m",
-
-
-            "15m":
-                "15m",
-
-
-            "30m":
-                "30m",
-
-
-            "1h":
-                "1H",
-
-
-            "4h":
-                "4H",
-
-
-            "1d":
-                "1D"
-
-        }
-
-
-        return mapping.get(
-
+        }.get(
             interval,
-
             "1H"
-
         )
 
 
@@ -189,26 +211,9 @@ class OKXClient:
     ):
 
 
-        okx_symbol = (
-
-            symbol.replace(
-
-                "USDT",
-
-                "-USDT-SWAP"
-
-            )
-
+        okx_symbol = self.format_symbol(
+            symbol
         )
-
-
-
-        bar = self.convert_interval(
-
-            interval
-
-        )
-
 
 
         data = await self.request(
@@ -218,17 +223,12 @@ class OKXClient:
             {
 
                 "instId":
-
                     okx_symbol,
 
-
                 "bar":
-
-                    bar,
-
+                    self.convert_interval(interval),
 
                 "limit":
-
                     str(CANDLES_LIMIT)
 
             }
@@ -236,9 +236,7 @@ class OKXClient:
         )
 
 
-
-        candles = []
-
+        candles=[]
 
 
         for item in reversed(data):
@@ -248,39 +246,27 @@ class OKXClient:
 
                 {
 
-                    "timestamp":
+                "timestamp":
+                    int(item[0]),
 
-                        int(item[0]),
+                "open":
+                    float(item[1]),
 
+                "high":
+                    float(item[2]),
 
-                    "open":
+                "low":
+                    float(item[3]),
 
-                        float(item[1]),
+                "close":
+                    float(item[4]),
 
-
-                    "high":
-
-                        float(item[2]),
-
-
-                    "low":
-
-                        float(item[3]),
-
-
-                    "close":
-
-                        float(item[4]),
-
-
-                    "volume":
-
-                        float(item[5])
+                "volume":
+                    float(item[5])
 
                 }
 
             )
-
 
 
         return candles
@@ -293,34 +279,23 @@ class OKXClient:
     ):
 
 
-        okx_symbol = (
-
-            symbol.replace(
-
-                "USDT",
-
-                "-USDT-SWAP"
-
-            )
-
+        okx_symbol = self.format_symbol(
+            symbol
         )
 
 
-
-        data = await request(
+        data = await self.request(
 
             "/api/v5/market/ticker",
 
             {
 
                 "instId":
-
                     okx_symbol
 
             }
 
         )
-
 
 
         return float(
