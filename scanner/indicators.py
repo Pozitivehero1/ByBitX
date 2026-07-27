@@ -153,8 +153,9 @@ class IndicatorEngine:
 
 
 
-        data = data.dropna()
+        data = data.fillna(method="bfill")
 
+        data = data.fillna(method="ffill")
 
 
         return data
