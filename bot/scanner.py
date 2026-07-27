@@ -1,6 +1,6 @@
 import asyncio
 
-from exchange.market_loader import MarketLoader
+from exchange.market import MarketLoader
 
 from scanner.indicators import IndicatorEngine
 from scanner.filter import MarketFilter
