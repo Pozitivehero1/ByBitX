@@ -1,17 +1,14 @@
 import asyncio
-
 import pandas as pd
 
 from exchange.okx_client import OKXClient
-
 from exchange.cache import CandleCache
-
 from config.settings import TIMEFRAMES
+from utils.logger import logger
 
 
 
 class MarketLoader:
-
 
 
     def __init__(self):
@@ -19,6 +16,8 @@ class MarketLoader:
         self.client = OKXClient()
 
         self.cache = CandleCache()
+
+        self.symbol_limit = asyncio.Semaphore(10)
 
 
 
@@ -46,45 +45,58 @@ class MarketLoader:
     ):
 
 
-        tasks = []
+        async with self.symbol_limit:
 
 
-        for name, interval in TIMEFRAMES.items():
+            tasks=[]
 
 
-            tasks.append(
+            for name,interval in TIMEFRAMES.items():
 
-                self.load_timeframe(
+                tasks.append(
 
-                    symbol,
+                    self.load_timeframe(
 
-                    name,
+                        symbol,
+                        name,
+                        interval
 
-                    interval
+                    )
 
                 )
 
+
+            results = await asyncio.gather(
+                *tasks,
+                return_exceptions=True
             )
 
 
-
-        results = await asyncio.gather(
-            *tasks
-        )
+            output={}
 
 
-
-        output = {}
-
+            for result in results:
 
 
-        for name, df in results:
+                if isinstance(
+                    result,
+                    Exception
+                ):
 
-            output[name] = df
+                    continue
+
+
+                name,df=result
+
+
+                if df is not None:
+
+                    output[name]=df
 
 
 
-        return output
+            return output
+
 
 
 
@@ -96,45 +108,45 @@ class MarketLoader:
     ):
 
 
-        key = (
-            symbol +
-            name
-        )
+        key=symbol+name
 
 
 
-        cached = self.cache.get(
+        cached=self.cache.get(
             key
         )
 
 
-
         if cached is not None:
 
-            return (
-                name,
-                cached
-            )
+            return name,cached
 
 
 
-        candles = await self.client.get_klines(
+        candles=await self.client.get_klines(
 
             symbol,
-
             interval
 
         )
 
 
+        if len(candles)<100:
 
-        df = pd.DataFrame(
+            logger.warning(
+                f"{symbol} {name}: not enough candles"
+            )
+
+            return name,None
+
+
+
+        df=pd.DataFrame(
             candles
         )
 
 
-
-        df["timestamp"] = pd.to_datetime(
+        df["timestamp"]=pd.to_datetime(
 
             df["timestamp"],
 
@@ -143,15 +155,10 @@ class MarketLoader:
         )
 
 
-
         self.cache.set(
             key,
             df
         )
 
 
-
-        return (
-            name,
-            df
-        )
+        return name,df
