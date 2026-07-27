@@ -1,155 +1,33 @@
+# scanner/patterns.py
 class CandlePatterns:
-
-
-
     @staticmethod
-    def analyze(
-        df
-    ):
-
-
+    def analyze(df):
         patterns = []
-
-
-
         last = df.iloc[-1]
-
         prev = df.iloc[-2]
 
-
-
-        body = abs(
-
-            last["close"]
-
-            -
-
-            last["open"]
-
-        )
-
-
-
-        candle_range = (
-
-            last["high"]
-
-            -
-
-            last["low"]
-
-        )
-
-
-
+        body = abs(last["close"] - last["open"])
+        candle_range = last["high"] - last["low"]
         if candle_range == 0:
-
             return patterns
 
+        # Большая свеча (тело > 70% диапазона)
+        if body / candle_range > 0.7:
+            if last["close"] > last["open"]:
+                patterns.append("Strong bullish candle")
+            else:
+                patterns.append("Strong bearish candle")
 
+        # Бычье поглощение (предыдущая свеча медвежья)
+        if (prev["close"] < prev["open"] and
+            last["close"] > prev["open"] and
+            last["open"] < prev["close"]):
+            patterns.append("Bullish engulfing")
 
-        # Большая зелёная свеча
-
-
-        if (
-
-            last["close"]
-
-            >
-
-            last["open"]
-
-            and
-
-            body / candle_range > 0.7
-
-        ):
-
-
-            patterns.append(
-                "Strong bullish candle"
-            )
-
-
-
-        # Большая красная свеча
-
-
-        if (
-
-            last["close"]
-
-            <
-
-            last["open"]
-
-            and
-
-            body / candle_range > 0.7
-
-        ):
-
-
-            patterns.append(
-                "Strong bearish candle"
-            )
-
-
-
-        # Поглощение вверх
-
-
-        if (
-
-            last["close"]
-
-            >
-
-            prev["open"]
-
-            and
-
-            last["open"]
-
-            <
-
-            prev["close"]
-
-        ):
-
-
-            patterns.append(
-                "Bullish engulfing"
-            )
-
-
-
-        # Поглощение вниз
-
-
-        if (
-
-            last["close"]
-
-            <
-
-            prev["open"]
-
-            and
-
-            last["open"]
-
-            >
-
-            prev["close"]
-
-        ):
-
-
-            patterns.append(
-                "Bearish engulfing"
-            )
-
-
+        # Медвежье поглощение (предыдущая свеча бычья)
+        if (prev["close"] > prev["open"] and
+            last["close"] < prev["open"] and
+            last["open"] > prev["close"]):
+            patterns.append("Bearish engulfing")
 
         return patterns
