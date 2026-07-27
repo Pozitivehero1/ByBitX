@@ -8,7 +8,6 @@ from config.settings import HISTORY_FILE
 class SignalHistory:
 
 
-
     def __init__(self):
 
         self.file = HISTORY_FILE
@@ -24,46 +23,45 @@ class SignalHistory:
         )
 
 
-        if folder:
-
-            os.makedirs(
-                folder,
-                exist_ok=True
-            )
+        os.makedirs(
+            folder,
+            exist_ok=True
+        )
 
 
+        if not os.path.exists(self.file):
 
-        if not os.path.exists(
-            self.file
-        ):
-
-
-            with open(
-                self.file,
-                "w",
-                encoding="utf-8"
-            ) as f:
-
-
-                json.dump(
-                    [],
-                    f
-                )
+            self.save([])
 
 
 
     def load(self):
 
-        with open(
-            self.file,
-            "r",
-            encoding="utf-8"
-        ) as f:
+        try:
+
+            with open(
+                self.file,
+                "r",
+                encoding="utf-8"
+            ) as f:
+
+                data = json.load(f)
 
 
-            return json.load(
-                f
-            )
+                if isinstance(data, list):
+
+                    return data
+
+
+        except Exception:
+
+            pass
+
+
+
+        self.save([])
+
+        return []
 
 
 
@@ -101,31 +99,18 @@ class SignalHistory:
     ):
 
 
-        data = self.load()
-
-
-
-        for item in data:
+        for item in self.load():
 
 
             if (
 
-                item["symbol"]
-
-                ==
-
-                symbol
+                item.get("symbol") == symbol
 
                 and
 
-                item["direction"]
-
-                ==
-
-                direction
+                item.get("direction") == direction
 
             ):
-
 
                 return True
 
@@ -150,24 +135,19 @@ class SignalHistory:
             {
 
                 "symbol":
-
                     signal.symbol,
 
 
                 "direction":
-
                     signal.direction,
 
 
                 "score":
-
                     signal.score
-
 
             }
 
         )
-
 
 
         self.save(
