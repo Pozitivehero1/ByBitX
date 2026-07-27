@@ -22,7 +22,6 @@ from utils.logger import logger
 class MarketScanner:
 
 
-
     def __init__(self):
 
         self.market = MarketLoader()
@@ -50,7 +49,6 @@ class MarketScanner:
         symbol
     ):
 
-
         data = await self.market.load_symbol(
             symbol
         )
@@ -58,17 +56,12 @@ class MarketScanner:
 
         for tf in data:
 
+            if data[tf] is None:
+                continue
 
-            data[tf] = (
 
-                IndicatorEngine
-
-                .calculate(
-
-                    data[tf]
-
-                )
-
+            data[tf] = IndicatorEngine.calculate(
+                data[tf]
             )
 
 
@@ -89,18 +82,11 @@ class MarketScanner:
         )
 
 
+        return MarketContextAnalyzer.analyze(
 
-        return (
+            btc["1h"],
 
-            MarketContextAnalyzer
-
-            .analyze(
-
-                btc["1h"],
-
-                eth["1h"]
-
-            )
+            eth["1h"]
 
         )
 
@@ -121,6 +107,16 @@ class MarketScanner:
             )
 
 
+            if not data:
+                return None
+
+
+
+            if "1h" not in data:
+
+                return None
+
+
 
             if not MarketFilter.validate(
                 data["1h"]
@@ -130,22 +126,15 @@ class MarketScanner:
 
 
 
-            signal = (
+            signal = StrategyEngine.analyze(
 
-                StrategyEngine
+                symbol,
 
-                .analyze(
+                data,
 
-                    symbol,
-
-                    data,
-
-                    context
-
-                )
+                context
 
             )
-
 
 
             if not signal:
@@ -166,7 +155,7 @@ class MarketScanner:
 
 
 
-            if not self.memory.can_publish(
+            if self.memory.can_publish(
 
                 signal.symbol,
 
@@ -174,11 +163,11 @@ class MarketScanner:
 
             ):
 
-                return None
+                return signal
 
 
 
-            return signal
+            return None
 
 
 
@@ -206,7 +195,6 @@ class MarketScanner:
         logger.info(
 
             f"""
-
 MARKET:
 {context.market_direction}
 
@@ -215,7 +203,6 @@ BTC:
 
 ETH:
 {context.eth_trend}
-
 """
 
         )
@@ -226,16 +213,25 @@ ETH:
 
 
 
-        tasks = []
+        logger.info(
+
+            f"Scanning symbols: {len(symbols)}"
+
+        )
 
 
 
-        for symbol in symbols:
+        semaphore = asyncio.Semaphore(10)
 
 
-            tasks.append(
 
-                self.scan_symbol(
+        async def worker(symbol):
+
+
+            async with semaphore:
+
+
+                return await self.scan_symbol(
 
                     symbol,
 
@@ -243,25 +239,48 @@ ETH:
 
                 )
 
-            )
+
+
+        tasks = [
+
+            worker(symbol)
+
+            for symbol in symbols
+
+        ]
 
 
 
         results = await asyncio.gather(
-            *tasks
+
+            *tasks,
+
+            return_exceptions=True
+
         )
 
 
 
-        signals = [
+        signals = []
 
-            x
 
-            for x in results
 
-            if x
+        for result in results:
 
-        ]
+
+            if isinstance(
+                result,
+                Exception
+            ):
+
+                continue
+
+
+            if result:
+
+                signals.append(
+                    result
+                )
 
 
 
@@ -281,6 +300,13 @@ ETH:
 
         )
 
+
+
+        logger.info(
+
+            f"Signals found: {len(signals)}"
+
+        )
 
 
         return signals[:3]
