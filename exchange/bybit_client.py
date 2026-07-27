@@ -17,9 +17,7 @@ class BybitClient:
 
         self.session = None
 
-        self.semaphore = asyncio.Semaphore(
-            10
-        )
+        self.semaphore = asyncio.Semaphore(10)
 
 
 
@@ -30,14 +28,23 @@ class BybitClient:
         )
 
 
-        connector = aiohttp.TCPConnector(
-            limit=20
-        )
+        headers = {
+
+            "User-Agent":
+                "Mozilla/5.0 BybitX-Bot",
+
+            "Accept":
+                "application/json"
+
+        }
 
 
         self.session = aiohttp.ClientSession(
+
             timeout=timeout,
-            connector=connector
+
+            headers=headers
+
         )
 
 
@@ -61,7 +68,8 @@ class BybitClient:
 
 
             url = (
-                BYBIT_URL +
+                BYBIT_URL
+                +
                 endpoint
             )
 
@@ -72,12 +80,59 @@ class BybitClient:
 
 
                     async with self.session.get(
+
                         url,
+
                         params=params
+
                     ) as response:
 
 
-                        data = await response.json()
+
+                        text = await response.text()
+
+
+
+                        if response.status != 200:
+
+
+                            logger.warning(
+
+                                f"Bybit HTTP {response.status}: {text[:200]}"
+
+                            )
+
+
+                            await asyncio.sleep(
+                                attempt + 1
+                            )
+
+                            continue
+
+
+
+                        try:
+
+
+                            data = await response.json()
+
+
+
+                        except Exception:
+
+
+                            logger.warning(
+
+                                f"Bybit non JSON: {text[:300]}"
+
+                            )
+
+
+                            await asyncio.sleep(
+                                attempt + 1
+                            )
+
+                            continue
 
 
 
@@ -87,9 +142,11 @@ class BybitClient:
 
 
                             raise Exception(
+
                                 data.get(
                                     "retMsg"
                                 )
+
                             )
 
 
@@ -102,12 +159,16 @@ class BybitClient:
 
 
                     logger.warning(
+
                         f"Bybit error {attempt+1}/5: {e}"
+
                     )
 
 
                     await asyncio.sleep(
+
                         attempt + 1
+
                     )
 
 
@@ -128,6 +189,7 @@ class BybitClient:
             {
 
                 "category":
+
                     "linear"
 
             }
@@ -142,30 +204,30 @@ class BybitClient:
         for item in result["list"]:
 
 
-            if item["status"] != "Trading":
+            if item.get("status") != "Trading":
 
                 continue
 
 
-            if item["quoteCoin"] != "USDT":
 
-                continue
-
-
-            if item["contractType"] != "LinearPerpetual":
+            if item.get("quoteCoin") != "USDT":
 
                 continue
 
 
 
             symbols.append(
+
                 item["symbol"]
+
             )
 
 
 
         logger.info(
+
             f"Loaded symbols: {len(symbols)}"
+
         )
 
 
@@ -187,18 +249,22 @@ class BybitClient:
             {
 
                 "category":
+
                     "linear",
 
 
                 "symbol":
+
                     symbol,
 
 
                 "interval":
+
                     interval,
 
 
                 "limit":
+
                     CANDLES_LIMIT
 
             }
@@ -221,26 +287,32 @@ class BybitClient:
                 {
 
                     "timestamp":
+
                         int(item[0]),
 
 
                     "open":
+
                         float(item[1]),
 
 
                     "high":
+
                         float(item[2]),
 
 
                     "low":
+
                         float(item[3]),
 
 
                     "close":
+
                         float(item[4]),
 
 
                     "volume":
+
                         float(item[5])
 
                 }
@@ -266,10 +338,12 @@ class BybitClient:
             {
 
                 "category":
+
                     "linear",
 
 
                 "symbol":
+
                     symbol
 
             }
@@ -278,5 +352,7 @@ class BybitClient:
 
 
         return float(
+
             result["list"][0]["lastPrice"]
+
         )
