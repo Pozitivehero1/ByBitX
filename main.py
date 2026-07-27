@@ -7,25 +7,34 @@ from tracker.checker import TradeChecker
 from utils.logger import logger
 
 
+
 async def main():
 
     scanner = MarketScanner()
+
     publisher = Publisher()
+
     tracker = TradeChecker()
 
 
     await tracker.start()
+
     await scanner.start()
 
 
     try:
 
-        # проверка старых сделок
+
+        # проверяем старые сделки
+
         await tracker.run()
 
 
-        # поиск новых сигналов
+
+        # ищем новые сигналы
+
         signals = await scanner.run()
+
 
 
         logger.info(
@@ -33,28 +42,49 @@ async def main():
         )
 
 
+
         for signal in signals:
 
 
-            data = await scanner.market.load_symbol(
+            # ВАЖНО:
+            # берём данные уже с индикаторами
+
+            data = await scanner.prepare_data(
+
                 signal.symbol
+
             )
+
+
+            if "1h" not in data:
+
+                continue
+
 
 
             await publisher.publish(
+
                 signal,
+
                 data["1h"]
+
             )
+
 
 
     except Exception as e:
 
+
         logger.error(
+
             f"MAIN ERROR: {e}"
+
         )
 
 
+
     finally:
+
 
         await tracker.stop()
 
@@ -62,8 +92,12 @@ async def main():
 
 
 
+
 if __name__ == "__main__":
 
+
     asyncio.run(
+
         main()
+
     )
