@@ -2,7 +2,7 @@ import asyncio
 
 import pandas as pd
 
-from exchange.binance_client import BinanceClient
+from exchange.okx_client import OkxClient
 
 from exchange.cache import CandleCache
 
@@ -16,7 +16,7 @@ class MarketLoader:
 
     def __init__(self):
 
-        self.client = BinanceClient()
+        self.client = OkxClient()
 
         self.cache = CandleCache()
 
