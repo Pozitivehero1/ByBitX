@@ -24,15 +24,6 @@ MISTRAL_API_KEY = os.getenv(
 )
 
 
-
-# Bybit
-
-BYBIT_URL = (
-    "https://api.bytick.com"
-)
-
-
-
 CANDLES_LIMIT = 500
 
 
