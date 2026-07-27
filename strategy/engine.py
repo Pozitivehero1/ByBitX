@@ -2,10 +2,12 @@ from scanner.ranking import SignalRanking
 from strategy.signal import SignalBuilder
 
 
+
 class StrategyEngine:
 
 
     MIN_SCORE = 60
+
 
 
     @staticmethod
@@ -17,14 +19,20 @@ class StrategyEngine:
 
 
         ranking = SignalRanking.calculate(
+
             data
+
         )
 
 
         score = ranking.get(
+
             "score",
+
             0
+
         )
+
 
 
         if score < StrategyEngine.MIN_SCORE:
