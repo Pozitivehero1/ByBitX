@@ -9,7 +9,6 @@ from config.settings import SIGNAL_COOLDOWN_HOURS
 class SignalMemory:
 
 
-
     def __init__(self):
 
         self.file = (
@@ -39,47 +38,43 @@ class SignalMemory:
             self.file
         ):
 
-
-            with open(
-                self.file,
-                "w",
-                encoding="utf-8"
-            ) as f:
-
-
-                json.dump(
-                    [],
-                    f
-                )
+            self.save([])
 
 
 
     def load(self):
 
-    try:
+        try:
 
-        with open(
-            self.file,
-            "r",
-            encoding="utf-8"
-        ) as f:
-
-            data = json.load(f)
-
-            if isinstance(data, list):
-
-                return data
+            with open(
+                self.file,
+                "r",
+                encoding="utf-8"
+            ) as f:
 
 
-    except Exception:
-
-        pass
+                data = json.load(f)
 
 
 
-    self.save([])
+                if isinstance(
+                    data,
+                    list
+                ):
 
-    return []
+                    return data
+
+
+
+        except Exception:
+
+            pass
+
+
+
+        self.save([])
+
+        return []
 
 
 
@@ -120,27 +115,43 @@ class SignalMemory:
         now = time.time()
 
 
-        data = self.load()
+
+        signals = self.load()
 
 
 
-        for item in data:
+        for item in signals:
 
 
             if (
 
-                item["symbol"] == symbol
+                item.get("symbol")
+
+                ==
+
+                symbol
 
                 and
 
-                item["direction"] == direction
+                item.get("direction")
+
+                ==
+
+                direction
 
             ):
 
 
                 hours = (
 
-                    now - item["time"]
+                    now
+
+                    -
+
+                    item.get(
+                        "time",
+                        0
+                    )
 
                 ) / 3600
 
