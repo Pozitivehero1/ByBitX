@@ -55,6 +55,7 @@ class TradeStorage:
 
     def load(self):
 
+    try:
 
         with open(
             self.file,
@@ -63,9 +64,23 @@ class TradeStorage:
         ) as f:
 
 
-            return json.load(
-                f
-            )
+            data = json.load(f)
+
+
+            if isinstance(data, list):
+
+                return data
+
+
+    except Exception:
+
+        pass
+
+
+
+    self.save([])
+
+    return []
 
 
 
