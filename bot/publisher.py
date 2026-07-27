@@ -1,4 +1,4 @@
-from ai.writer import SignalWriter
+from AI.writer import SignalWriter
 
 from charts.generator import ChartGenerator
 
