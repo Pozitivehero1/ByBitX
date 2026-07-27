@@ -1,4 +1,5 @@
 # exchange/bybit_client.py
+import os
 import asyncio
 import aiohttp
 from config.settings import BYBIT_URL, CANDLES_LIMIT
@@ -8,14 +9,21 @@ class BybitClient:
     def __init__(self):
         self.session = None
         self.semaphore = asyncio.Semaphore(10)
+        # Читаем прокси из переменной окружения (например, "http://user:pass@host:port")
+        self.proxy = os.getenv("BYBIT_PROXY", None)
 
     async def connect(self):
         timeout = aiohttp.ClientTimeout(total=30)
         headers = {
-            "User-Agent": "Mozilla/5.0 BybitX-Bot",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
             "Accept": "application/json"
         }
-        self.session = aiohttp.ClientSession(timeout=timeout, headers=headers)
+        # Если указан прокси, передаём его в сессию
+        self.session = aiohttp.ClientSession(
+            timeout=timeout,
+            headers=headers,
+            proxy=self.proxy
+        )
 
     async def close(self):
         if self.session:
@@ -83,7 +91,6 @@ class BybitClient:
             })
         return candles
 
-    # ДОБАВЛЕН МЕТОД get_price
     async def get_price(self, symbol):
         result = await self.request(
             "/v5/market/tickers",
