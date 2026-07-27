@@ -1,10 +1,8 @@
 import asyncio
 
-
-from exchange.market import MarketLoader
+from exchange.market_loader import MarketLoader
 
 from scanner.indicators import IndicatorEngine
-
 from scanner.filter import MarketFilter
 
 from strategy.engine import StrategyEngine
@@ -12,7 +10,6 @@ from strategy.engine import StrategyEngine
 from market.context import MarketContextAnalyzer
 
 from storage.history import SignalHistory
-
 from storage.signal_memory import SignalMemory
 
 from utils.logger import logger
@@ -29,6 +26,8 @@ class MarketScanner:
         self.history = SignalHistory()
 
         self.memory = SignalMemory()
+
+        self.scan_limit = asyncio.Semaphore(5)
 
 
 
@@ -49,19 +48,19 @@ class MarketScanner:
         symbol
     ):
 
+
         data = await self.market.load_symbol(
             symbol
         )
 
 
-        for tf in data:
-
-            if data[tf] is None:
-                continue
+        for tf in list(data.keys()):
 
 
             data[tf] = IndicatorEngine.calculate(
+
                 data[tf]
+
             )
 
 
@@ -99,89 +98,89 @@ class MarketScanner:
     ):
 
 
-        try:
+        async with self.scan_limit:
 
 
-            data = await self.prepare_data(
-                symbol
-            )
+            try:
 
 
-            if not data:
-                return None
+                data = await self.prepare_data(
+                    symbol
+                )
 
 
+                if "1h" not in data:
 
-            if "1h" not in data:
-
-                return None
-
-
-
-            if not MarketFilter.validate(
-                data["1h"]
-            ):
-
-                return None
+                    return None
 
 
 
-            signal = StrategyEngine.analyze(
+                if not MarketFilter.validate(
+                    data["1h"]
+                ):
 
-                symbol,
-
-                data,
-
-                context
-
-            )
-
-
-            if not signal:
-
-                return None
+                    return None
 
 
 
-            if self.history.exists(
+                signal = StrategyEngine.analyze(
 
-                signal.symbol,
+                    symbol,
 
-                signal.direction
+                    data,
 
-            ):
+                    context
 
-                return None
+                )
 
 
 
-            if self.memory.can_publish(
+                if not signal:
 
-                signal.symbol,
+                    return None
 
-                signal.direction
 
-            ):
+
+                if self.history.exists(
+
+                    signal.symbol,
+
+                    signal.direction
+
+                ):
+
+                    return None
+
+
+
+                if not self.memory.can_publish(
+
+                    signal.symbol,
+
+                    signal.direction
+
+                ):
+
+                    return None
+
+
 
                 return signal
 
 
 
-            return None
+            except Exception as e:
 
 
+                logger.error(
 
-        except Exception as e:
+                    f"{symbol}: {e}"
 
-
-            logger.error(
-
-                f"{symbol}: {e}"
-
-            )
+                )
 
 
-            return None
+                return None
+
 
 
 
@@ -221,29 +220,15 @@ ETH:
 
 
 
-        semaphore = asyncio.Semaphore(10)
+        tasks=[
 
+            self.scan_symbol(
 
+                symbol,
 
-        async def worker(symbol):
+                context
 
-
-            async with semaphore:
-
-
-                return await self.scan_symbol(
-
-                    symbol,
-
-                    context
-
-                )
-
-
-
-        tasks = [
-
-            worker(symbol)
+            )
 
             for symbol in symbols
 
@@ -253,34 +238,17 @@ ETH:
 
         results = await asyncio.gather(
 
-            *tasks,
-
-            return_exceptions=True
+            *tasks
 
         )
 
 
 
-        signals = []
+        signals=[
 
+            x for x in results if x
 
-
-        for result in results:
-
-
-            if isinstance(
-                result,
-                Exception
-            ):
-
-                continue
-
-
-            if result:
-
-                signals.append(
-                    result
-                )
+        ]
 
 
 
@@ -307,6 +275,7 @@ ETH:
             f"Signals found: {len(signals)}"
 
         )
+
 
 
         return signals[:3]
