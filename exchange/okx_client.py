@@ -1,6 +1,5 @@
 import aiohttp
 import asyncio
-import random
 
 from config.settings import CANDLES_LIMIT
 from utils.logger import logger
@@ -10,55 +9,24 @@ class OKXClient:
 
     BASE_URL = "https://www.okx.com"
 
-
     def __init__(self):
-
         self.session = None
-
-        self.rate_limit = asyncio.Semaphore(2)
-
+        self.lock = asyncio.Semaphore(5)
 
 
     async def connect(self):
 
         self.session = aiohttp.ClientSession(
-
             headers={
-                "User-Agent":
-                    "Mozilla/5.0"
-            },
-
-            timeout=aiohttp.ClientTimeout(
-                total=15
-            )
-
+                "User-Agent": "Mozilla/5.0"
+            }
         )
-
 
 
     async def close(self):
 
         if self.session:
-
             await self.session.close()
-
-
-
-    def format_symbol(self, symbol):
-
-        if "-SWAP" in symbol:
-
-            return symbol
-
-        if "-" in symbol:
-
-            return symbol + "-SWAP"
-
-        return symbol.replace(
-            "USDT",
-            "-USDT-SWAP"
-        )
-
 
 
     async def request(
@@ -67,113 +35,84 @@ class OKXClient:
         params=None
     ):
 
-
-        async with self.rate_limit:
-
+        async with self.lock:
 
             for attempt in range(5):
 
-                try:
-
-                    async with self.session.get(
-
-                        self.BASE_URL + endpoint,
-
-                        params=params
-
-                    ) as response:
+                async with self.session.get(
+                    self.BASE_URL + endpoint,
+                    params=params
+                ) as response:
 
 
-                        data = await response.json()
+                    data = await response.json()
 
 
+                    if data.get("code") == "0":
 
-                        if data.get("code") == "0":
-
-                            return data["data"]
-
+                        return data["data"]
 
 
-                        if data.get("code") == "50011":
+                    if data.get("code") in (
+                        "50011",
+                        "50013"
+                    ):
 
-                            wait = (
-                                3 + attempt * 3
-                            )
-
-                            logger.warning(
-
-                                f"OKX rate limit. Sleep {wait}s"
-
-                            )
-
-                            await asyncio.sleep(wait)
-
-                            continue
-
-
-
-                        raise Exception(data)
-
-
-
-                except Exception as e:
-
-
-                    if attempt == 4:
-
-                        raise e
-
-
-                    await asyncio.sleep(
-
-                        random.uniform(
-                            1,
-                            3
+                        logger.warning(
+                            "OKX rate limit. Sleep 3s"
                         )
 
-                    )
+                        await asyncio.sleep(3)
+
+                        continue
+
+
+                    raise Exception(data)
+
+
+            raise Exception(
+                "OKX request failed after retries"
+            )
 
 
 
     async def get_symbols(self):
 
-
         data = await self.request(
-
             "/api/v5/public/instruments",
-
             {
-                "instType":
-                    "SWAP"
+                "instType": "SWAP"
             }
-
         )
 
 
         symbols = []
 
 
-
         for item in data:
 
-
-            if item.get("settleCcy") == "USDT":
-
+            if (
+                item.get("settleCcy") == "USDT"
+                and item.get("state") == "live"
+            ):
 
                 symbols.append(
 
                     item["instId"]
-                    .replace("-","")
-                    .replace("SWAP","")
+                    .replace(
+                        "-SWAP",
+                        ""
+                    )
+                    .replace(
+                        "-",
+                        ""
+                    )
 
                 )
 
 
-
         logger.info(
-
             f"OKX symbols: {len(symbols)}"
-
         )
 
 
@@ -185,7 +124,6 @@ class OKXClient:
         self,
         interval
     ):
-
 
         return {
 
@@ -211,8 +149,11 @@ class OKXClient:
     ):
 
 
-        okx_symbol = self.format_symbol(
-            symbol
+        okx_symbol = (
+            symbol.replace(
+                "USDT",
+                "-USDT-SWAP"
+            )
         )
 
 
@@ -222,8 +163,7 @@ class OKXClient:
 
             {
 
-                "instId":
-                    okx_symbol,
+                "instId": okx_symbol,
 
                 "bar":
                     self.convert_interval(interval),
@@ -241,32 +181,16 @@ class OKXClient:
 
         for item in reversed(data):
 
+            candles.append({
 
-            candles.append(
+                "timestamp":int(item[0]),
+                "open":float(item[1]),
+                "high":float(item[2]),
+                "low":float(item[3]),
+                "close":float(item[4]),
+                "volume":float(item[5])
 
-                {
-
-                "timestamp":
-                    int(item[0]),
-
-                "open":
-                    float(item[1]),
-
-                "high":
-                    float(item[2]),
-
-                "low":
-                    float(item[3]),
-
-                "close":
-                    float(item[4]),
-
-                "volume":
-                    float(item[5])
-
-                }
-
-            )
+            })
 
 
         return candles
@@ -279,8 +203,11 @@ class OKXClient:
     ):
 
 
-        okx_symbol = self.format_symbol(
-            symbol
+        okx_symbol = (
+            symbol.replace(
+                "USDT",
+                "-USDT-SWAP"
+            )
         )
 
 
@@ -289,17 +216,12 @@ class OKXClient:
             "/api/v5/market/ticker",
 
             {
-
-                "instId":
-                    okx_symbol
-
+                "instId":okx_symbol
             }
 
         )
 
 
         return float(
-
             data[0]["last"]
-
         )
