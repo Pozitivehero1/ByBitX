@@ -1,4 +1,4 @@
-from ai.mistral import MistralAI
+from AI.mistral import MistralAI
 
 
 
