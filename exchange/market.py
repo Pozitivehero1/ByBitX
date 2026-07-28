@@ -1,14 +1,14 @@
 # exchange/market.py
 import asyncio
 import pandas as pd
-from exchange.bybit_client import BybitClient
+from exchange.okx_client import OKXClient
 from exchange.cache import CandleCache
 from config.settings import TIMEFRAMES
 from utils.logger import logger
 
 class MarketLoader:
     def __init__(self):
-        self.client = BybitClient()          # заменили OKXClient на BybitClient
+        self.client = OKXClient()
         self.cache = CandleCache()
         self.symbol_limit = asyncio.Semaphore(3)
 
@@ -43,7 +43,6 @@ class MarketLoader:
             return (name, cached)
 
         candles = await self.client.get_klines(symbol, interval)
-
         if not candles:
             return (name, None)
 
