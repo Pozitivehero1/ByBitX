@@ -1,68 +1,40 @@
 import aiohttp
-
 from config.settings import MISTRAL_API_KEY
 
 
 
 class MistralAI:
-
-
-
     def __init__(self):
-
         self.key = MISTRAL_API_KEY
-
-
         self.url = (
-
             "https://api.mistral.ai/v1/chat/completions"
-
         )
-
-
 
     async def generate(
         self,
         prompt
     ):
-
-
         if not self.key:
-
             return None
 
 
 
         headers = {
 
-
             "Authorization":
-
                 f"Bearer {self.key}",
-
-
             "Content-Type":
-
                 "application/json"
-
         }
-
 
 
         payload = {
 
-
             "model":
-
                 "mistral-small-latest",
-
-
             "messages":
-
                 [
-
                     {
-
                         "role":
 
                             "user",
