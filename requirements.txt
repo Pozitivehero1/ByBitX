@@ -6,4 +6,3 @@ mplfinance==0.12.10b0
 matplotlib==3.10.0
 pillow==11.1.0
 python-dotenv==1.0.1
-pybit>=5.0.0
